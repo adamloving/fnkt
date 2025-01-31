@@ -1,132 +1,85 @@
 # fnkt
 
-**fnkt** is an open-source tool that uses LLMs to generate self-contained Python workflows, ready to run inside lightweight, ephemeral [E2B containers](https://e2b.dev). With one command, you get a single `.py` file containing everything you need to execute a complex task—no multi-file scaffolding needed.
+Generate and run self-contained Python workflows using natural language descriptions.
 
 ## Features
 
-- **Natural Language to Single-File Workflow**: Provide an English description of what you need done, and fnkt generates a single Python file containing all necessary logic (helper functions included).
-- **Ephemeral Execution**: Spin up a lightweight E2B container on demand. Once the workflow completes, the container is destroyed, ensuring a clean environment each time.
-- **Automated Dependency Detection**: If your requested workflow requires multiple internal steps, fnkt packages them in one consolidated script. No more rummaging around for scattered helper modules.
-- **Built on litellm**: Uses [litellm](https://www.google.com/search?q=https://github.com/berriai/litellm) behind the scenes to interface with LLMs. Supply the relevant LLM API keys (e.g., `OPENAI_API_KEY`) to generate your workflows.
+- Generate complete Python scripts from natural language descriptions using LLMs
+- Run workflows in ephemeral containers for isolation and reproducibility
+- Simple CLI interface for workflow generation and execution
+- Support for artifact mapping between host and container
 
 ## Installation
 
 ```bash
-pip install fnkt
+# Clone the repository
+git clone https://github.com/yourusername/fnkt.git
+cd fnkt
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+
+# Install the package
+pip install -e .
 ```
 
-(For local development or contributions, clone/fork the repository and install in editable mode.)
+## Usage
 
-## Quick Start
+### Generating a Workflow
 
-### 1. Generate a Single-File Workflow
-
-Suppose you need a script to find the _longest common substring_ between two strings. Simply run:
+Use the `gen` command to create a new workflow from a natural language description:
 
 ```bash
-fnkt gen "find longest common substring (a: string, b: string) => { longest_substring: string }" --output-dir ./my_workflows
+fnkt gen "download all images from a webpage and resize them to 800x600"
 ```
 
-**Result**: a single Python file (e.g., `./my_workflows/longest_common_substring.py`) that looks like this:
+Options:
 
-```python
-def find_longest_common_substring(a: str, b: str) -> dict:
-    """Find the longest common substring between two strings."""
-    # Implementation here...
+- `--output-dir`, `-o`: Specify output directory (default: ./workflows)
+- `--name`: Custom name for the workflow file
 
-def main():
-    import sys
-    # CLI or container-friendly entry point
-    # calls find_longest_common_substring with arguments, prints or returns result
-```
+### Running a Workflow
 
-**Output Directory**: By default, `fnkt` will output generated files to the `./workflows` directory. You can override this with the `--output-dir` (or `-o`) flag. For instance:
+Use the `run` command to execute a workflow in a container:
 
 ```bash
-fnkt gen "my workflow description" --output-dir /path/to/my/output/folder
+fnkt run path/to/workflow.py
 ```
 
-### 2. Ephemeral Container Execution
+Options:
 
-To run the generated script in an E2B container (make sure you are in the same directory as your workflows directory or adjust the path to `longest_common_substring.py` accordingly):
+- `--container`: Container runtime to use (default: e2b)
+- `--artifacts`: Map files/directories between host and container (format: local_path:container_path)
+
+Example with artifacts:
 
 ```bash
-fnkt run --container e2b ./my_workflows/longest_common_substring.py \
-    --a "Alice" \
-    --b "Bob"
+fnkt run workflow.py --artifacts "data:/data" --artifacts "output:/output"
 ```
 
-Under the hood, **fnkt** spins up an ephemeral container, copies your `.py` script, executes it, and tears the container down—all in one step.
+## Environment Variables
 
-### 3. Handling Complex Requests
+- `OPENAI_API_KEY`: Your OpenAI API key for LLM integration
+- `FNKT_CONTAINER_RUNTIME`: Default container runtime (optional)
 
-For more involved tasks—like converting an MBOX email archive into a Markdown FAQ—**fnkt** still produces a **single** monolithic Python file containing all helper logic:
+## Development
 
-```bash
-fnkt gen "convert mbox to faq (path to mboxfile) => path to markdown faq" --output-dir ./email_tools
-```
-
-The generated script might include several internal functions:
-
-- `parse_mbox_into_message_threads(...)`
-- `strip_unnecessary_headers(...)`
-- `identify_faq_from_thread_using_llm(...)`
-- `generate_markdown_faq(...)`
-- `main()` entry point tying everything together
-
-By default, it’s all in one `.py` so you can drop it into a fresh E2B container and run it immediately—no extra dependencies or scattered files. The file will be saved in `./email_tools` directory.
-
-### 4. Passing a Local File to the Container
-
-If your script needs to process a local file, you can pass it to the container using the `--artifacts` flag. For example, let's say you have an `input.txt` file that you want to process using a script generated by `fnkt`.
-
-First, generate the script:
-
-```bash
-fnkt gen "process file (path: string) => { result: string }" --name process_file --output-dir ./data_processors
-```
-
-Then, run the script in an E2B container, passing the local file:
-
-```bash
-fnkt run --container e2b ./data_processors/process_file.py --artifacts input.txt:/app/input.txt --path /app/input.txt
-```
-
-This command does the following:
-
-- Starts an E2B container.
-- Copies `input.txt` from your local machine to `/app/input.txt` inside the container.
-- Executes `process_file.py` inside the container, passing `/app/input.txt` as the `path` argument.
-
-The `process_file.py` script can then access and process the file at the specified path within the container.
-
-## Under the Hood: litellm Integration
-
-fnkt relies on [litellm](https://www.google.com/search?q=https://github.com/berriai/litellm) to handle LLM calls:
-
-```python
-import os
-from litellm import completion
-
-os.environ["OPENAI_API_KEY"] = "your-api-key"
-
-response = completion(
-    model="anthropic/claude-3-sonnet-20240229",
-    messages=[{"role": "user", "content": "Hello LLM!"}]
-)
-print(response)
-```
-
-You can configure any LLM provider you like, as long as you have the proper environment variables set.
+1. Clone the repository
+2. Create a virtual environment and activate it
+3. Install development dependencies:
+   ```bash
+   pip install -e ".[dev]"
+   ```
+4. Run tests:
+   ```bash
+   pytest
+   ```
 
 ## Contributing
 
-1. Fork the [fnkt repository](https://www.google.com/search?q=https://github.com/e2b-dev/fnkt) and clone locally.
-2. Create a feature branch (`git checkout -b feature/my-new-feature`).
-3. Commit your changes (`git commit -m 'Add some feature'`).
-4. Push to the branch (`git push origin feature/my-new-feature`).
-5. Open a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-fnkt is available under the [MIT License](LICENSE). See the license file for more information.
+MIT License - see LICENSE file for details.
