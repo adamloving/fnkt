@@ -47,6 +47,13 @@ Use the `run` command to execute a workflow in a container:
 fnkt run path/to/workflow.py
 ```
 
+```zsh
+fnkt run workflows/download_images.py \
+    -- --url https://adamloving.com \
+    --artifacts "~/Downloads/test:/downloaded_images" \
+    --output-dir /downloaded_images
+```
+
 Options:
 
 - `--container`: Container runtime to use (default: e2b)
