@@ -27,6 +27,8 @@ DEPENDENCIES = {
     # No external dependencies required for this script
 }
 
+
+
 def setup_dependencies() -> None:
     """Install required packages if they're not already installed."""
     if not DEPENDENCIES:

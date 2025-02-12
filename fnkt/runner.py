@@ -1,11 +1,20 @@
 """Container execution module for running workflows."""
 import os
 import subprocess
-import logging
 import sys
-from typing import List, Optional
+from typing import List
+from rich.logging import RichHandler
+from rich.console import Console
+import logging
 
-logging.basicConfig(level=logging.INFO)
+# Configure rich logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[RichHandler(rich_tracebacks=True)]
+)
+console = Console()
 logger = logging.getLogger(__name__)
 
 class ContainerExecutionError(Exception):
@@ -51,14 +60,19 @@ def run_in_container(container: str, script_path: str, script_args: List[str], a
             stderr=subprocess.PIPE,
             text=True
         )
-        logger.info("Command output:\n%s", result.stdout)
+        if result.stdout:
+            console.print("[green]Command output:[/green]")
+            console.print(result.stdout)
         if result.stderr:
-            logger.warning("Command stderr:\n%s", result.stderr)
+            console.print("[yellow]Command stderr:[/yellow]")
+            console.print(result.stderr)
             
     except subprocess.CalledProcessError as e:
         error_msg = f"Container execution failed with exit code {e.returncode}"
         if e.stderr:
             error_msg += f"\nError output:\n{e.stderr}"
+        console.print("[red]Error:[/red]", error_msg, style="bold red")
         raise ContainerExecutionError(error_msg) from e
     except Exception as e:
+        console.print("[red]Unexpected error during container execution:[/red]", str(e), style="bold red")
         raise ContainerExecutionError(f"Unexpected error during container execution: {str(e)}") from e 
