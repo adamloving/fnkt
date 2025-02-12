@@ -50,6 +50,8 @@ def run_in_container(container: str, script_path: str, script_args: List[str], a
     if artifact_args:
         cmd.extend(artifact_args)
 
+    # output a horizontal line
+    console.rule("Executing Workflow")
     logger.info("Executing command: %s", " ".join(cmd))
 
     try:
@@ -62,7 +64,7 @@ def run_in_container(container: str, script_path: str, script_args: List[str], a
         )
         if result.stdout:
             console.print("[green]Command output:[/green]")
-            console.print(result.stdout)
+            console.print(result.stdout, style="bold", highlight=True)
         if result.stderr:
             console.print("[yellow]Command stderr:[/yellow]")
             console.print(result.stderr)
